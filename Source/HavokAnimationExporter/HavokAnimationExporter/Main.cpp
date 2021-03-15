@@ -137,7 +137,7 @@ void HavokErrorReportFunction(const char*, void*)
 {
 }
 
-hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName)
+hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName, bool compress)
 {
     FbxAnimStack* pAnimStack = pScene->GetCurrentAnimationStack();
 
@@ -148,8 +148,8 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
     const FbxTime lDuration = lTimeSpan.GetDuration();
     const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, lDuration.GetFrameCount(FbxTime::eFrames30));
 
-    InterleavedUncompressedAnimation animation;
-    animation.m_duration = (hkReal)lDuration.GetSecondDouble();
+    InterleavedUncompressedAnimation* animation = new InterleavedUncompressedAnimation();
+    animation->m_duration = (hkReal)lDuration.GetSecondDouble();
 
     hkArray<FbxNode*> nodes;
     hkArray<hkaAnnotationTrack> annotationTracks;
@@ -223,12 +223,12 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 #endif
 
 #if _2010 || _2012
-    animation.m_annotationTracks = std::move(annotationTracks);
+    animation->m_annotationTracks = std::move(annotationTracks);
 #elif _550
-    ToPtrArray(annotationTracks, animation.m_annotationTracks, animation.m_numAnnotationTracks);
+    ToPtrArray(annotationTracks, animation->m_annotationTracks, animation->m_numAnnotationTracks);
 #endif
 
-    animation.m_numberOfTransformTracks = nodes.getSize();
+    animation->m_numberOfTransformTracks = nodes.getSize();
 
     hkArray<hkQsTransform> localTransforms;
     localTransforms.setSize(nodes.getSize() * (int)lFrameCount);
@@ -254,17 +254,17 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
     }
 
 #if _2010 || _2012
-    animation.m_transforms = std::move(localTransforms);
+    animation->m_transforms = std::move(localTransforms);
 #elif _550
-    ToPtrArray(localTransforms, animation.m_transforms, animation.m_numTransforms);
+    ToPtrArray(localTransforms, animation->m_transforms, animation->m_numTransforms);
 #endif
 
 #if _2010 || _2012
     animationBinding->m_originalSkeletonName = originalSkeletonName;
 #endif
 
-    animationBinding->m_animation = new SplineCompressedAnimation(animation,
-        SplineCompressedAnimation::TrackCompressionParams(), SplineCompressedAnimation::AnimationCompressionParams());
+    animationBinding->m_animation = compress ? new SplineCompressedAnimation(*animation,
+        SplineCompressedAnimation::TrackCompressionParams(), SplineCompressedAnimation::AnimationCompressionParams()) : (Animation*)animation;
 
     return animationBinding;
 }
@@ -294,12 +294,21 @@ int main(int argc, const char** argv)
     std::string dstFileName;
     std::string sklFileName;
 
+    bool compress = true;
+
     for (int i = 1; i < argc; i++)
     {
-        if (strcmp(argv[i], "-skl") == 0)
+        if (strcmp(argv[i], "-s") == 0 || 
+            strcmp(argv[i], "--skl") == 0)
         {
             if (i < argc - 1)
                 sklFileName = argv[++i];
+        }
+
+        else if (strcmp(argv[i], "-u") == 0 ||
+            strcmp(argv[i], "--uncompressed") == 0)
+        {
+            compress = false;
         }
 
         else if (srcFileName.empty())
@@ -307,6 +316,20 @@ int main(int argc, const char** argv)
 
         else if (dstFileName.empty())
             dstFileName = argv[i];
+    }
+
+    if (srcFileName.empty())
+    {
+        printf("ERROR: Insufficient amount of arguments were given.\n\n");
+        printf("Havok Animation Exporter\n");
+        printf(" Usage: [source] [destination] [options]\n\n");
+        printf(" Options:\n");
+        printf("  -s or --skl:          Path to skeleton HKX file when generating animation data.\n");
+        printf("  -u or --uncompressed: Whether animation data is going to be uncompressed.\n\n");
+        printf("If no skeleton path is specified, a skeleton HKX file is going to be created from input.\n");
+        printf("If no destination path is specified, it's going to be automatically assumed from input.");
+        getchar();
+        return 0;
     }
 
     if (dstFileName.empty())
@@ -357,7 +380,7 @@ int main(int argc, const char** argv)
         if (skeleton == nullptr)
             FATAL_ERROR("Failed to load .skl.hkx file.");
 
-        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str());
+        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str(), compress);
 
         if (animationBinding == nullptr)
             FATAL_ERROR("Failed to find animation data in FBX file.");
