@@ -50,6 +50,7 @@
 #include <Animation/Animation/hkaAnimationContainer.h>
 #include <Animation/Animation/Animation/hkaAnimationBinding.h>
 #include <Animation/Animation/Rig/hkaSkeleton.h>
+#include <Animation/Animation/Rig/hkaSkeletonUtils.h>
 
 #if _2010 || _2012
 #include <Common/Serialize/Util/hkSerializeUtil.h>

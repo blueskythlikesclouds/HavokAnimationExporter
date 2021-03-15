@@ -33,6 +33,11 @@ hkQuaternion ToHavok(const FbxQuaternion& v)
     return hkQuaternion((hkReal)v[0], (hkReal)v[1], (hkReal)v[2], (hkReal)v[3]);
 }
 
+hkQsTransform ToHavok(const FbxAMatrix& v)
+{
+    return hkQsTransform(ToHavok(v.GetT()), ToHavok(v.GetQ()), ToHavok(v.GetS()));
+}
+
 bool CheckIsSkeleton(FbxNode* pNode)
 {
     FbxNodeAttribute* lAttribute = pNode->GetNodeAttribute();
@@ -56,10 +61,7 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
 
     const FbxAMatrix lLocalTransform = pNode->EvaluateLocalTransform();
 
-    referencePose.pushBack(hkQsTransform(
-        ToHavok(lLocalTransform.GetT()),
-        ToHavok(lLocalTransform.GetQ()),
-        ToHavok(lLocalTransform.GetS())));
+    referencePose.pushBack(ToHavok(lLocalTransform));
 
     for (int i = 0; i < pNode->GetChildCount(); i++)
         CreateBonesRecursively(pNode->GetChild(i), index, bones, parentIndices, referencePose);
@@ -158,9 +160,6 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
         FbxNode* lNode = pScene->FindNodeByName(bone.m_name.cString());
 
-        if (lNode == nullptr)
-            continue;
-
         hkaAnnotationTrack track;
         track.m_trackName = bone.m_name;
 
@@ -170,9 +169,6 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
         hkaBone* bone = skeleton->m_bones[i];
 
         FbxNode* lNode = pScene->FindNodeByName(bone->m_name);
-
-        if (lNode == nullptr)
-            continue;
 
         hkaAnnotationTrack track {};
         track.m_name = bone->m_name;
@@ -233,7 +229,13 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     animation.m_numberOfTransformTracks = nodes.getSize();
 
-    hkArray<hkQsTransform> transforms;
+    hkArray<hkQsTransform> localTransforms;
+    localTransforms.setSize(nodes.getSize() * (int)lFrameCount);
+
+    hkArray<hkQsTransform> modelTransforms;
+    modelTransforms.setSize(nodes.getSize());
+
+    hkaSkeletonUtils::transformLocalPoseToModelPose(nodes.getSize(), &skeleton->m_parentIndices[0], &skeleton->m_referencePose[0], &modelTransforms[0]);
 
     for (FbxLongLong i = 0; i < lFrameCount; i++)
     {
@@ -243,19 +245,17 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
         for (int j = 0; j < nodes.getSize(); j++)
         {
-            const FbxAMatrix lLocalTransform = nodes[j]->EvaluateLocalTransform(lTime);
-
-            transforms.pushBack(hkQsTransform(
-                ToHavok(lLocalTransform.GetT()),
-                ToHavok(lLocalTransform.GetQ()),
-                ToHavok(lLocalTransform.GetS())));
+            if (nodes[j] != nullptr)
+                modelTransforms[j] = ToHavok(nodes[j]->EvaluateGlobalTransform(lTime));
         }
+
+        hkaSkeletonUtils::transformModelPoseToLocalPose(nodes.getSize(), &skeleton->m_parentIndices[0], &modelTransforms[0], &localTransforms[(int)i * nodes.getSize()]);
     }
 
 #if _2010 || _2012
-    animation.m_transforms = std::move(transforms);
+    animation.m_transforms = std::move(localTransforms);
 #elif _550
-    ToPtrArray(transforms, animation.m_transforms, animation.m_numTransforms);
+    ToPtrArray(localTransforms, animation.m_transforms, animation.m_numTransforms);
 #endif
 
 #if _2010 || _2012
