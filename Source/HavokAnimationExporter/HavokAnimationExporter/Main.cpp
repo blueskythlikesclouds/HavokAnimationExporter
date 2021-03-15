@@ -67,9 +67,10 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
         CreateBonesRecursively(pNode->GetChild(i), index, bones, parentIndices, referencePose);
 }
 
-hkaSkeleton* CreateSkeleton(FbxNode* pNode)
+hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
 {
     hkaSkeleton* skeleton = new hkaSkeleton();
+    skeleton->m_name = name;
 
     hkArray<hkaBone> bones;
     hkArray<hkInt16> parentIndices;
@@ -376,7 +377,7 @@ int main(int argc, const char** argv)
             if (!CheckIsSkeleton(lNode))
                 continue;
 
-            hkaSkeleton* skeleton = CreateSkeleton(lNode);
+            hkaSkeleton* skeleton = CreateSkeleton(lNode, GetFileNameWithoutExtension(dstFileName).c_str());
             if (skeleton == nullptr)
                 continue;
             
