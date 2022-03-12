@@ -105,6 +105,8 @@ hkaSkeleton* LoadSkeleton(const char* filePath)
     hkRootLevelContainer* levelContainer = resource->getContents<hkRootLevelContainer>();
 #elif _550
     hkIstream stream(filePath);
+    if (!stream.isOk())
+        return nullptr;
     
     hkBinaryPackfileReader* reader = new hkBinaryPackfileReader();
 
@@ -137,7 +139,7 @@ void HavokErrorReportFunction(const char*, void*)
 {
 }
 
-hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName, bool compress)
+hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName, bool compress, double fps)
 {
     FbxAnimStack* pAnimStack = pScene->GetCurrentAnimationStack();
 
@@ -146,10 +148,11 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     const FbxTimeSpan lTimeSpan = pAnimStack->GetLocalTimeSpan();
     const FbxTime lDuration = lTimeSpan.GetDuration();
-    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, lDuration.GetFrameCount());
+    const double lSecondDouble = lDuration.GetSecondDouble();
+    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, (FbxLongLong)(lSecondDouble * fps + 0.5)) + 1;
 
     InterleavedUncompressedAnimation* animation = new InterleavedUncompressedAnimation();
-    animation->m_duration = (hkReal)lDuration.GetSecondDouble();
+    animation->m_duration = (hkReal)lSecondDouble;
 
     hkArray<FbxNode*> nodes;
     hkArray<hkaAnnotationTrack> annotationTracks;
@@ -240,9 +243,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     for (FbxLongLong i = 0; i < lFrameCount; i++)
     {
-        FbxTime lTime;
-        lTime.SetFrame(i);
-        lTime = lTimeSpan.GetStart() + lTime;
+        const FbxTime lTime = lTimeSpan.GetStart() + FbxTimeSeconds((double)i / (double)(lFrameCount - 1) * lSecondDouble);
 
         for (int j = 0; j < nodes.getSize(); j++)
         {
@@ -384,14 +385,12 @@ int main(int argc, const char** argv)
 
     if (!sklFileName.empty())
     {
-        FbxTime::SetGlobalTimeMode(FbxTime::eCustom, fps);
-
         hkaSkeleton* skeleton = LoadSkeleton(sklFileName.c_str());
 
         if (skeleton == nullptr)
             FATAL_ERROR("Failed to load skeleton file.");
 
-        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str(), compress);
+        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str(), compress, fps);
 
         if (animationBinding == nullptr)
             FATAL_ERROR("Failed to find animation data in FBX file.");
