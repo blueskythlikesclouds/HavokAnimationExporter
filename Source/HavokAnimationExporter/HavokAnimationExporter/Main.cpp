@@ -146,7 +146,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     const FbxTimeSpan lTimeSpan = pAnimStack->GetLocalTimeSpan();
     const FbxTime lDuration = lTimeSpan.GetDuration();
-    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, lDuration.GetFrameCount(FbxTime::eFrames30));
+    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, lDuration.GetFrameCount());
 
     InterleavedUncompressedAnimation* animation = new InterleavedUncompressedAnimation();
     animation->m_duration = (hkReal)lDuration.GetSecondDouble();
@@ -241,7 +241,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
     for (FbxLongLong i = 0; i < lFrameCount; i++)
     {
         FbxTime lTime;
-        lTime.SetFrame(i, FbxTime::eFrames30);
+        lTime.SetFrame(i);
         lTime = lTimeSpan.GetStart() + lTime;
 
         for (int j = 0; j < nodes.getSize(); j++)
@@ -296,6 +296,8 @@ int main(int argc, const char** argv)
 
     bool compress = true;
 
+    double fps = 60.0;
+
     for (int i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "-s") == 0 || 
@@ -309,6 +311,12 @@ int main(int argc, const char** argv)
             strcmp(argv[i], "--uncompressed") == 0)
         {
             compress = false;
+        }
+
+        else if (strcmp(argv[i], "-f") == 0 ||
+            strcmp(argv[i], "--fps") == 0)
+        {
+            fps = atof(argv[++i]);
         }
 
         else if (srcFileName.empty())
@@ -325,7 +333,8 @@ int main(int argc, const char** argv)
         printf(" Usage: [source] [destination] [options]\n\n");
         printf(" Options:\n");
         printf("  -s or --skl:          Path to skeleton HKX file when generating animation data.\n");
-        printf("  -u or --uncompressed: Whether animation data is going to be uncompressed.\n\n");
+        printf("  -u or --uncompressed: Whether animation data is going to be uncompressed.\n");
+        printf("  -f or --fps:          Frames per second when generating animation data. 60 by default.\n\n");
         printf("If no skeleton path is specified, a skeleton HKX file is going to be created from input.\n");
         printf("If no destination path is specified, it's going to be automatically assumed from input.");
         getchar();
@@ -375,10 +384,12 @@ int main(int argc, const char** argv)
 
     if (!sklFileName.empty())
     {
+        FbxTime::SetGlobalTimeMode(FbxTime::eCustom, fps);
+
         hkaSkeleton* skeleton = LoadSkeleton(sklFileName.c_str());
 
         if (skeleton == nullptr)
-            FATAL_ERROR("Failed to load .skl.hkx file.");
+            FATAL_ERROR("Failed to load skeleton file.");
 
         hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str(), compress);
 

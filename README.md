@@ -7,7 +7,7 @@ The tool accepts a source FBX file as input and a destination HKX file as output
 For generating skeleton data, simply presenting the FBX file is sufficient:  
 ```HavokAnimationExporter chr_Sonic_HD.fbx chr_Sonic_HD.skl.hkx```
 
-For generating animation data, path to skeleton HKX file (postfixed with `--skl`) needs to be presented:  
+For generating animation data, path to skeleton HKX file (prefixed with `--skl`) needs to be presented:  
 ```HavokAnimationExporter --skl chr_Sonic_HD.skl.hkx sn_idle_loop.fbx sn_idle_loop.anm.hkx```
 
 If no destination path is specified, it's going to be automatically assumed based on input file path.
