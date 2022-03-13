@@ -264,8 +264,11 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
     animationBinding->m_originalSkeletonName = originalSkeletonName;
 #endif
 
+    SplineCompressedAnimation::TrackCompressionParams params;
+    params.m_rotationTolerance = 0.00001f; // Default value makes it very lossy, so set it to a lower value.
+
     animationBinding->m_animation = compress ? new SplineCompressedAnimation(*animation,
-        SplineCompressedAnimation::TrackCompressionParams(), SplineCompressedAnimation::AnimationCompressionParams()) : (Animation*)animation;
+        params, SplineCompressedAnimation::AnimationCompressionParams()) : (Animation*)animation;
 
     return animationBinding;
 }
