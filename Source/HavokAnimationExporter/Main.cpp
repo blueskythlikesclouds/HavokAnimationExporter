@@ -299,8 +299,20 @@ std::string GetFileNameWithoutExtension(std::string filePath)
 
 std::string GetDirectoryName(const std::string& filePath)
 {
-    const size_t index = filePath.find_last_of("\\/");
-    return index != std::string::npos ? filePath.substr(0, index) : std::string();
+    return filePath.substr(0, filePath.find_last_of("\\/") + 1);
+}
+
+void SavePackfile(const char* dstFilePath, hkRootLevelContainer* levelContainer, const hkStructureLayout& layout)
+{
+    hkOstream stream(dstFilePath);
+
+    hkBinaryPackfileWriter* writer = new hkBinaryPackfileWriter();
+    writer->setContents(levelContainer, hkRootLevelContainerClass);
+
+    hkBinaryPackfileWriter::Options options = {};
+    options.m_layout = layout;
+
+    writer->save(stream.getStreamWriter(), options);
 }
 
 int main(int argc, const char** argv)
@@ -309,8 +321,14 @@ int main(int argc, const char** argv)
     std::string dstFileName;
     std::string sklFileName;
 
-    bool compress = true;
+    hkStructureLayout layout =
+#ifdef _550
+        hkStructureLayout::Xbox360LayoutRules;
+#else
+        hkStructureLayout::MsvcWin32LayoutRules;
+#endif
 
+    bool compress = true;
     double fps = 60.0;
 
     for (int i = 1; i < argc; i++)
@@ -334,6 +352,34 @@ int main(int argc, const char** argv)
             fps = atof(argv[++i]);
         }
 
+#ifdef _550
+        else if (strcmp(argv[i], "-w") == 0 ||
+            strcmp(argv[i], "--windows") == 0)
+        {
+            layout = hkStructureLayout::MsvcWin32LayoutRules;
+        }
+#endif
+
+        else if (strcmp(argv[i], "-x") == 0 ||
+            strcmp(argv[i], "--xbox360") == 0)
+        {
+            layout = hkStructureLayout::Xbox360LayoutRules;
+        }     
+        
+        else if (strcmp(argv[i], "-p") == 0 ||
+            strcmp(argv[i], "--ps3") == 0)
+        {
+            layout = hkStructureLayout::GccPs3LayoutRules;
+        }
+
+#ifdef _2012
+        else if (strcmp(argv[i], "-w") == 0 ||
+            strcmp(argv[i], "--wiiu") == 0)
+        {
+            layout = hkStructureLayout::GhsWiiULayoutRules;
+        }
+#endif
+
         else if (srcFileName.empty())
             srcFileName = argv[i];
 
@@ -350,8 +396,24 @@ int main(int argc, const char** argv)
         printf("  -s or --skl:          Path to skeleton HKX file when generating animation data.\n");
         printf("  -u or --uncompressed: Whether animation data is going to be uncompressed.\n");
         printf("  -f or --fps:          Frames per second when generating animation data. 60 by default.\n\n");
+#ifdef _550
+        printf("  -w or --windows:      Convert for Windows.\n");
+#endif
+        printf("  -x or --xbox360:      Convert for Xbox 360.\n");
+        printf("  -p or --ps3:          Convert for PS3.\n");
+#ifdef _2012
+        printf("  -w or --wiiu:         Convert for Wii U.\n");
+#endif
         printf("If no skeleton path is specified, a skeleton HKX file is going to be created from input.\n");
-        printf("If no destination path is specified, it's going to be automatically assumed from input.");
+        printf("If no destination path is specified, it's going to be automatically assumed from input.\n");
+        printf("If no output platform is specified, it's going to be exported for "
+#ifdef _550
+            "Xbox 360"
+#else
+            "Windows"
+#endif
+            " by default.");
+
         getchar();
         return 0;
     }
@@ -361,7 +423,7 @@ int main(int argc, const char** argv)
         const std::string directoryName = GetDirectoryName(srcFileName);
         const std::string fileName = GetFileNameWithoutExtension(srcFileName) + (sklFileName.empty() ? ".skl.hkx" : ".anm.hkx");
 
-        dstFileName = directoryName.empty() ? fileName : directoryName + "/" + fileName;
+        dstFileName = directoryName.empty() ? fileName : directoryName + fileName;
     }
 
 #if _2010 || _2012
@@ -404,7 +466,12 @@ int main(int argc, const char** argv)
         if (skeleton == nullptr)
             FATAL_ERROR("Failed to load skeleton file.");
 
-        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, GetFileNameWithoutExtension(sklFileName).c_str(), compress, fps);
+        std::string originalSkeletonName = GetFileNameWithoutExtension(sklFileName);
+        size_t index = originalSkeletonName.find("_ForAnimExport");
+        if (index != std::string::npos)
+            originalSkeletonName.erase(index);
+
+        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, originalSkeletonName.c_str(), compress, fps);
 
         if (animationBinding == nullptr)
             FATAL_ERROR("Failed to find animation data in FBX file.");
@@ -457,19 +524,13 @@ int main(int argc, const char** argv)
     ToPtrArray(namedVariants, levelContainer.m_namedVariants, levelContainer.m_numNamedVariants);
 #endif
 
-    hkOstream stream(dstFileName.c_str());
+    SavePackfile(dstFileName.c_str(), &levelContainer, layout);
 
-#if _2010 || _2012
-    hkSerializeUtil::saveTagfile(&levelContainer, hkRootLevelContainerClass, stream.getStreamWriter());
-#elif _550
-    hkBinaryPackfileWriter* writer = new hkBinaryPackfileWriter();
-    writer->setContents(&levelContainer, hkRootLevelContainerClass);
-
-    hkBinaryPackfileWriter::Options options = {};
-    options.m_layout = hkStructureLayout::GccPs3LayoutRules; // PS3 also works on Xbox 360, but not vice versa.
-
-    writer->save(stream.getStreamWriter(), options);
-#endif
+    if (sklFileName.empty() && !layout.getRules().m_littleEndian)
+    {
+        SavePackfile((GetDirectoryName(dstFileName) + GetFileNameWithoutExtension(dstFileName) + "_ForAnimExport.skl.hkx").c_str(), 
+            &levelContainer, hkStructureLayout::MsvcWin32LayoutRules);
+    }
 
     return 0;
 }
