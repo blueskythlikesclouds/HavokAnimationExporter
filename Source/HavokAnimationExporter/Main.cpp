@@ -156,8 +156,11 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     const FbxTimeSpan lTimeSpan = pAnimStack->GetLocalTimeSpan();
     const FbxTime lDuration = lTimeSpan.GetDuration();
-    const double lSecondDouble = lDuration.GetSecondDouble();
-    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, (FbxLongLong)(lSecondDouble * fps + 0.5)) + 1;
+
+    // Align duration to target FPS to prevent flickering with spline compressed animations.
+    double lSecondDouble = lDuration.GetSecondDouble();
+    const FbxLongLong lFrameCount = std::max<FbxLongLong>(1, (FbxLongLong)round(lSecondDouble * fps)) + 1;
+    lSecondDouble = static_cast<double>(lFrameCount - 1) / fps;
 
     InterleavedUncompressedAnimation* animation = new InterleavedUncompressedAnimation();
     animation->m_duration = (hkReal)lSecondDouble;
