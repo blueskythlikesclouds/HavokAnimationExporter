@@ -63,8 +63,16 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
 
     referencePose.pushBack(ToHavok(lLocalTransform));
 
+    // Replicate Havok Content Tools' case insensitive child ordering.
+    std::vector<FbxNode*> nodes;
+
     for (int i = 0; i < pNode->GetChildCount(); i++)
-        CreateBonesRecursively(pNode->GetChild(i), index, bones, parentIndices, referencePose);
+        nodes.push_back(pNode->GetChild(i));
+
+    std::sort(nodes.begin(), nodes.end(), [](auto lhs, auto rhs) { return _stricmp(lhs->GetName(), rhs->GetName()) < 0; });
+
+    for (auto pNode : nodes)
+        CreateBonesRecursively(pNode, index, bones, parentIndices, referencePose, newTags);
 }
 
 hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
