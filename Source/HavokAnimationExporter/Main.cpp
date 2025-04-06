@@ -45,7 +45,7 @@ bool CheckIsSkeleton(FbxNode* pNode)
 }
 
 void CreateBonesRecursively(FbxNode* pNode, int parentIndex, 
-    hkArray<hkaBone>& bones, hkArray<hkInt16>& parentIndices, hkArray<hkQsTransform>& referencePose)
+    hkArray<hkaBone>& bones, hkArray<hkInt16>& parentIndices, hkArray<hkQsTransform>& referencePose, hkArray<bool>& newTags)
 {
     if (!CheckIsSkeleton(pNode))
         return;
@@ -62,6 +62,10 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
     const FbxAMatrix lLocalTransform = pNode->EvaluateLocalTransform();
 
     referencePose.pushBack(ToHavok(lLocalTransform));
+
+    std::string name(pNode->GetName());
+    std::transform(name.begin(), name.end(), name.begin(), tolower);
+    newTags.pushBack(name.find("@new") != std::string::npos);
 
     // Replicate Havok Content Tools' case insensitive child ordering.
     std::vector<FbxNode*> nodes;
@@ -83,19 +87,63 @@ hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
     hkArray<hkaBone> bones;
     hkArray<hkInt16> parentIndices;
     hkArray<hkQsTransform> referencePose;
+    hkArray<bool> newTags;
 
-    CreateBonesRecursively(pNode, -1, bones, parentIndices, referencePose);
+    CreateBonesRecursively(pNode, -1, bones, parentIndices, referencePose, newTags);
+
+    // Check for bones with @NEW tag, and push them to the end of the list.
+    // This can be used to remain compatible with existing animations in games 
+    // that map animations to the skeleton by bone index, instead of bone name.
+    hkArray<hkInt16> boneIndices;
+    boneIndices.reserve(bones.getSize());
+
+    for (hkInt16 i = 0; i < bones.getSize(); i++)
+    {
+        if (!newTags[i])
+            boneIndices.pushBack(i);
+    }  
+    for (hkInt16 i = 0; i < bones.getSize(); i++)
+    {
+        if (newTags[i])
+            boneIndices.pushBack(i);
+    }
+
+    hkArray<hkaBone> bonesSorted(bones.getSize());
+    hkArray<hkInt16> parentIndicesSorted(bones.getSize());
+    hkArray<hkQsTransform> referencePoseSorted(bones.getSize());
+
+    for (int i = 0; i < bones.getSize(); i++)
+    {
+        hkInt16 boneIndex = boneIndices[i];
+        bonesSorted[i] = bones[boneIndex];
+        referencePoseSorted[i] = referencePose[boneIndex];
+
+        hkInt16 parentIndex = parentIndices[boneIndex];
+        if (parentIndex >= 0 && parentIndex != boneIndices[parentIndex])
+        {
+            for (int j = 0; j < boneIndices.getSize(); j++)
+            {
+                if (parentIndex == boneIndices[j])
+                {
+                    parentIndex = j;
+                    break;
+                }
+            }
+        }
+
+        parentIndicesSorted[i] = parentIndex;
+    }
 
 #if _2010 || _2012
-    skeleton->m_bones = std::move(bones);
-    skeleton->m_parentIndices = std::move(parentIndices);
-    skeleton->m_referencePose = std::move(referencePose);
+    skeleton->m_bones = std::move(bonesSorted);
+    skeleton->m_parentIndices = std::move(parentIndicesSorted);
+    skeleton->m_referencePose = std::move(referencePoseSorted);
 
     return !skeleton->m_bones.isEmpty() ? skeleton : nullptr;
 #elif _550
-    ToPtrArray(bones, skeleton->m_bones, skeleton->m_numBones);
-    ToPtrArray(parentIndices, skeleton->m_parentIndices, skeleton->m_numParentIndices);
-    ToPtrArray(referencePose, skeleton->m_referencePose, skeleton->m_numReferencePose);
+    ToPtrArray(bonesSorted, skeleton->m_bones, skeleton->m_numBones);
+    ToPtrArray(parentIndicesSorted, skeleton->m_parentIndices, skeleton->m_numParentIndices);
+    ToPtrArray(referencePoseSorted, skeleton->m_referencePose, skeleton->m_numReferencePose);
 
     return !bones.isEmpty() ? skeleton : nullptr;
 #endif
@@ -244,11 +292,8 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 
     animation->m_numberOfTransformTracks = nodes.getSize();
 
-    hkArray<hkQsTransform> localTransforms;
-    localTransforms.setSize(nodes.getSize() * (int)lFrameCount);
-
-    hkArray<hkQsTransform> modelTransforms;
-    modelTransforms.setSize(nodes.getSize());
+    hkArray<hkQsTransform> localTransforms(nodes.getSize() * (int)lFrameCount);
+    hkArray<hkQsTransform> modelTransforms(nodes.getSize());
 
     hkaSkeletonUtils::transformLocalPoseToModelPose(nodes.getSize(), &skeleton->m_parentIndices[0], &skeleton->m_referencePose[0], &modelTransforms[0]);
 
