@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <list>
 
 #include <fbxsdk.h>
 
@@ -46,6 +47,7 @@
 #endif
 
 #include <Common/Serialize/Packfile/Binary/hkBinaryPackfileWriter.h>
+#include <Common/Serialize/Packfile/Binary/hkPackfileHeader.h>
 #include <Common/Serialize/Util/hkRootLevelContainer.h>
 #include <Common/Serialize/Util/hkStructureLayout.h>
 #include <Animation/Animation/hkaAnimation.h>

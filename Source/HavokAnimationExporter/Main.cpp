@@ -149,6 +149,8 @@ static hkaSkeleton* createSkeleton(FbxNode* pNode, const char* name)
 #endif
 }
 
+extern std::vector<unsigned char> endianSwapHKX(const void* data, size_t dataSize);
+
 static hkaSkeleton* loadSkeleton(const char* filePath)
 {
 #if _2010 || _2012
@@ -160,13 +162,27 @@ static hkaSkeleton* loadSkeleton(const char* filePath)
 
     hkRootLevelContainer* levelContainer = resource->getContents<hkRootLevelContainer>();
 #elif _550
-    hkIstream stream(filePath);
-    if (!stream.isOk())
+    FILE* file = fopen(filePath, "rb");
+    if (file == nullptr)
         return nullptr;
-    
+
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    std::vector<uint8_t> data(fileSize);
+    fread(data.data(), 1, fileSize, file);
+    fclose(file);
+
     hkBinaryPackfileReader* reader = new hkBinaryPackfileReader();
 
-    if (reader->loadEntireFile(stream.getStreamReader()) != HK_SUCCESS)
+    if (reader->loadFileHeader(hkIstream(data.data(), data.size()).getStreamReader()) != HK_SUCCESS)
+        return nullptr;
+
+    if (memcmp(reader->getFileHeader().m_layoutRules, &hkStructureLayout::HostLayoutRules, sizeof(hkStructureLayout::HostLayoutRules)) != 0)
+        data = endianSwapHKX(data.data(), data.size());
+
+    if (reader->loadEntireFile(hkIstream(data.data(), data.size()).getStreamReader()) != HK_SUCCESS)
         return nullptr;
 
     hkRootLevelContainer* levelContainer = (hkRootLevelContainer*)reader->getContents("hkRootLevelContainer");
@@ -511,12 +527,7 @@ int main(int argc, const char** argv)
         if (skeleton == nullptr)
             FATAL_ERROR("Failed to load skeleton file.");
 
-        std::string originalSkeletonName = getFileNameWithoutExtension(sklFileName);
-        size_t index = originalSkeletonName.find("_ForAnimExport");
-        if (index != std::string::npos)
-            originalSkeletonName.erase(index);
-
-        hkaAnimationBinding* animationBinding = createAnimationAndBinding(lScene, skeleton, originalSkeletonName.c_str(), compress, fps);
+        hkaAnimationBinding* animationBinding = createAnimationAndBinding(lScene, skeleton, getFileNameWithoutExtension(sklFileName).c_str(), compress, fps);
 
         if (animationBinding == nullptr)
             FATAL_ERROR("Failed to find animation data in FBX file.");
@@ -570,12 +581,6 @@ int main(int argc, const char** argv)
 #endif
 
     savePackfile(dstFileName.c_str(), &levelContainer, layout);
-
-    if (sklFileName.empty() && !layout.getRules().m_littleEndian)
-    {
-        savePackfile((getDirectoryName(dstFileName) + getFileNameWithoutExtension(dstFileName) + "_ForAnimExport.skl.hkx").c_str(), 
-            &levelContainer, hkStructureLayout::MsvcWin32LayoutRules);
-    }
 
     return 0;
 }
