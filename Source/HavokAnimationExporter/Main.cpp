@@ -326,6 +326,28 @@ static hkaAnimationBinding* createAnimationAndBinding(FbxScene* pScene, hkaSkele
         hkaSkeletonUtils::transformModelPoseToLocalPose(nodes.getSize(), &skeleton->m_parentIndices[0], &modelTransforms[0], &localTransforms[(int)i * nodes.getSize()]);
     }
 
+    // Unroll quaternions so spline compression doesn't flicker.
+    for (FbxLongLong i = 0; i < lFrameCount; i++)
+    {
+        for (int j = 0; j < nodes.getSize(); j++)
+        {
+            auto& transform = localTransforms[(int)i * nodes.getSize() + j];
+            transform.m_rotation.normalize();
+
+            if (i == 0)
+            {
+                if (transform.m_rotation.m_vec(3) < 0.0f)
+                    transform.m_rotation.m_vec.setNeg4(transform.m_rotation.m_vec);
+            }
+            else
+            {
+                auto& prevTransform = localTransforms[(int)(i - 1) * nodes.getSize() + j];
+                if (transform.m_rotation.m_vec.dot4(prevTransform.m_rotation.m_vec) < 0.0f)
+                    transform.m_rotation.m_vec.setNeg4(transform.m_rotation.m_vec);
+            }
+        }
+    }
+
 #if _2010 || _2012
     animation->m_transforms = std::move(localTransforms);
 #elif _550
