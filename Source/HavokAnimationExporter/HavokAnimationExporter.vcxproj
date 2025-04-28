@@ -25,21 +25,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='2010|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='2012|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v100</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='550|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -87,14 +87,14 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk_2020\include;..\..\Dependencies\hk2010_2_0_r1\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk\include;..\..\Dependencies\hk2010_2_0_r1\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk_2020\lib\vs2017\x86\release;..\..\Dependencies\hk2010_2_0_r1\Lib\win32_net_9-0\release_multithreaded_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk\lib\vs2019\x86\release;..\..\Dependencies\hk2010_2_0_r1\Lib\win32_net_9-0\release_multithreaded_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>legacy_stdio_definitions.lib;libfbxsdk-md.lib;libxml2-md.lib;zlib-md.lib;hctCommon.lib;hctSceneExport.lib;hctSdkUtils.lib;hkaAnimation.lib;hkaInternal.lib;hkaRagdoll.lib;hkBase.lib;hkCompat.lib;hkgBridge.lib;hkgCommon.lib;hkgDx10.lib;hkgDx9.lib;hkgDx9s.lib;hkGeometryUtilities.lib;hkgOgl.lib;hkgOglES.lib;hkgOglES2.lib;hkgOgls.lib;hkInternal.lib;hkpCollide.lib;hkpConstraintSolver.lib;hkpDynamics.lib;hkpInternal.lib;hkpUtilities.lib;hkpVehicle.lib;hkSceneData.lib;hksCommon.lib;hkSerialize.lib;hksXAudio2.lib;hkVisualize.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -109,15 +109,15 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk_2015\include;..\..\Dependencies\hk2012_2_0_r1\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk\include;..\..\Dependencies\hk2012_2_0_r1\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk_2015\lib\vs2010\x86\release;..\..\Dependencies\hk2012_2_0_r1\Lib\win32_vs2010_noSimd\hybrid_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libfbxsdk-md.lib;hctCommon.lib;hctSceneExport.lib;hctSdkUtils.lib;hkaAnimation.lib;hkaInternal.lib;hkaRagdoll.lib;hkBase.lib;hkcdCollide.lib;hkcdInternal.lib;hkCompat.lib;hkgBridge.lib;hkgCommon.lib;hkgDx11.lib;hkgDx9s.lib;hkGeometryUtilities.lib;hkgOglES.lib;hkgOglES2.lib;hkgOgls.lib;hkgSoundCommon.lib;hkgSoundXAudio2.lib;hkInternal.lib;hkpCollide.lib;hkpConstraint.lib;hkpConstraintSolver.lib;hkpDynamics.lib;hkpInternal.lib;hkpUtilities.lib;hkpVehicle.lib;hkSceneData.lib;hkSerialize.lib;hkVisualize.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk\lib\vs2019\x86\release;..\..\Dependencies\hk2012_2_0_r1\Lib\win32_vs2010_noSimd\release_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>legacy_stdio_definitions.lib;libfbxsdk-md.lib;libxml2-md.lib;zlib-md.lib;hctCommon.lib;hctSceneExport.lib;hctSdkUtils.lib;hkaAnimation.lib;hkaInternal.lib;hkaRagdoll.lib;hkBase.lib;hkcdCollide.lib;hkcdInternal.lib;hkCompat.lib;hkgBridge.lib;hkgCommon.lib;hkgDx11.lib;hkgDx9s.lib;hkGeometryUtilities.lib;hkgOglES.lib;hkgOglES2.lib;hkgOgls.lib;hkgSoundCommon.lib;hkgSoundXAudio2.lib;hkInternal.lib;hkpCollide.lib;hkpConstraint.lib;hkpConstraintSolver.lib;hkpDynamics.lib;hkpInternal.lib;hkpUtilities.lib;hkpVehicle.lib;hkSceneData.lib;hkSerialize.lib;hkVisualize.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='550|Win32'">
@@ -131,14 +131,14 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk_2020\include;..\..\Dependencies\hk550\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies\fbxsdk\include;..\..\Dependencies\hk550\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk_2020\lib\vs2017\x86\release;..\..\Dependencies\hk550\Lib\win32_net_8-0\release_multithreaded_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\Dependencies\fbxsdk\lib\vs2019\x86\release;..\..\Dependencies\hk550\Lib\win32_net_8-0\release_multithreaded_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>legacy_stdio_definitions.lib;libfbxsdk-md.lib;libxml2-md.lib;zlib-md.lib;hctCommon.lib;hctSceneExport.lib;hctSdkUtils.lib;hkaAnimation.lib;hkaInternal.lib;hkaRagdoll.lib;hkBase.lib;hkCompat.lib;hkgBridge.lib;hkgCommon.lib;hkgDx9.lib;hkgDx9s.lib;hkgOgl.lib;hkpCollide.lib;hkpConstraintSolver.lib;hkpDynamics.lib;hkpInternal.lib;hkpUtilities.lib;hkpVehicle.lib;hkSceneData.lib;hkSerialize.lib;hkVisualize.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

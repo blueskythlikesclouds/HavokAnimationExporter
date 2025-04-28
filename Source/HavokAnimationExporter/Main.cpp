@@ -3,7 +3,7 @@
 #ifdef _550
 
 template<typename T>
-void ToPtrArray(const hkArray<T>& array, T*& ptr, hkInt32& num)
+static void toPtrArray(const hkArray<T>& array, T*& ptr, hkInt32& num)
 {
     num = array.getSize();
     ptr = new T[num];
@@ -12,7 +12,7 @@ void ToPtrArray(const hkArray<T>& array, T*& ptr, hkInt32& num)
 }
 
 template<typename T>
-void ToPtrArray(const hkArray<T>& array, T**& ptr, hkInt32& num)
+static void toPtrArray(const hkArray<T>& array, T**& ptr, hkInt32& num)
 {
     num = array.getSize();
     ptr = new T*[num];
@@ -23,31 +23,31 @@ void ToPtrArray(const hkArray<T>& array, T**& ptr, hkInt32& num)
 
 #endif
 
-hkVector4 ToHavok(const FbxVector4& v)
+static hkVector4 toHavok(const FbxVector4& v)
 {
     return hkVector4((hkReal)v[0], (hkReal)v[1], (hkReal)v[2], (hkReal)v[3]);
 }
 
-hkQuaternion ToHavok(const FbxQuaternion& v)
+static hkQuaternion toHavok(const FbxQuaternion& v)
 {
     return hkQuaternion((hkReal)v[0], (hkReal)v[1], (hkReal)v[2], (hkReal)v[3]);
 }
 
-hkQsTransform ToHavok(const FbxAMatrix& v)
+static hkQsTransform toHavok(const FbxAMatrix& v)
 {
-    return hkQsTransform(ToHavok(v.GetT()), ToHavok(v.GetQ()), ToHavok(v.GetS()));
+    return hkQsTransform(toHavok(v.GetT()), toHavok(v.GetQ()), toHavok(v.GetS()));
 }
 
-bool CheckIsSkeleton(FbxNode* pNode)
+static bool checkIsSkeleton(FbxNode* pNode)
 {
     FbxNodeAttribute* lAttribute = pNode->GetNodeAttribute();
     return lAttribute == nullptr || lAttribute->GetAttributeType() == FbxNodeAttribute::eNull || lAttribute->GetAttributeType() == FbxNodeAttribute::eSkeleton;
 }
 
-void CreateBonesRecursively(FbxNode* pNode, int parentIndex, 
+static void createBonesRecursively(FbxNode* pNode, int parentIndex,
     hkArray<hkaBone>& bones, hkArray<hkInt16>& parentIndices, hkArray<hkQsTransform>& referencePose, hkArray<bool>& newTags)
 {
-    if (!CheckIsSkeleton(pNode))
+    if (!checkIsSkeleton(pNode))
         return;
 
     hkaBone bone;
@@ -61,7 +61,7 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
 
     const FbxAMatrix lLocalTransform = pNode->EvaluateLocalTransform();
 
-    referencePose.pushBack(ToHavok(lLocalTransform));
+    referencePose.pushBack(toHavok(lLocalTransform));
 
     std::string name(pNode->GetName());
     std::transform(name.begin(), name.end(), name.begin(), tolower);
@@ -76,10 +76,10 @@ void CreateBonesRecursively(FbxNode* pNode, int parentIndex,
     std::sort(nodes.begin(), nodes.end(), [](auto lhs, auto rhs) { return _stricmp(lhs->GetName(), rhs->GetName()) < 0; });
 
     for (auto pNode : nodes)
-        CreateBonesRecursively(pNode, index, bones, parentIndices, referencePose, newTags);
+        createBonesRecursively(pNode, index, bones, parentIndices, referencePose, newTags);
 }
 
-hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
+static hkaSkeleton* createSkeleton(FbxNode* pNode, const char* name)
 {
     hkaSkeleton* skeleton = new hkaSkeleton();
     skeleton->m_name = name;
@@ -89,7 +89,7 @@ hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
     hkArray<hkQsTransform> referencePose;
     hkArray<bool> newTags;
 
-    CreateBonesRecursively(pNode, -1, bones, parentIndices, referencePose, newTags);
+    createBonesRecursively(pNode, -1, bones, parentIndices, referencePose, newTags);
 
     // Check for bones with @NEW tag, and push them to the end of the list.
     // This can be used to remain compatible with existing animations in games 
@@ -141,15 +141,15 @@ hkaSkeleton* CreateSkeleton(FbxNode* pNode, const char* name)
 
     return !skeleton->m_bones.isEmpty() ? skeleton : nullptr;
 #elif _550
-    ToPtrArray(bonesSorted, skeleton->m_bones, skeleton->m_numBones);
-    ToPtrArray(parentIndicesSorted, skeleton->m_parentIndices, skeleton->m_numParentIndices);
-    ToPtrArray(referencePoseSorted, skeleton->m_referencePose, skeleton->m_numReferencePose);
+    toPtrArray(bonesSorted, skeleton->m_bones, skeleton->m_numBones);
+    toPtrArray(parentIndicesSorted, skeleton->m_parentIndices, skeleton->m_numParentIndices);
+    toPtrArray(referencePoseSorted, skeleton->m_referencePose, skeleton->m_numReferencePose);
 
     return !bones.isEmpty() ? skeleton : nullptr;
 #endif
 }
 
-hkaSkeleton* LoadSkeleton(const char* filePath)
+static hkaSkeleton* loadSkeleton(const char* filePath)
 {
 #if _2010 || _2012
     hkSerializeUtil::ErrorDetails errorDetails;
@@ -191,11 +191,11 @@ hkaSkeleton* LoadSkeleton(const char* filePath)
     return animationContainer->m_skeletons[0];
 }
 
-void HavokErrorReportFunction(const char*, void*)
+static void havokErrorReportFunction(const char*, void*)
 {
 }
 
-hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName, bool compress, double fps)
+static hkaAnimationBinding* createAnimationAndBinding(FbxScene* pScene, hkaSkeleton* skeleton, const char* originalSkeletonName, bool compress, double fps)
 {
     FbxAnimStack* pAnimStack = pScene->GetCurrentAnimationStack();
 
@@ -281,13 +281,13 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 #if _2010 || _2012
     animationBinding->m_transformTrackToBoneIndices = std::move(transformTrackToBoneIndices);
 #elif _550
-    ToPtrArray(transformTrackToBoneIndices, animationBinding->m_transformTrackToBoneIndices, animationBinding->m_numTransformTrackToBoneIndices);
+    toPtrArray(transformTrackToBoneIndices, animationBinding->m_transformTrackToBoneIndices, animationBinding->m_numTransformTrackToBoneIndices);
 #endif
 
 #if _2010 || _2012
     animation->m_annotationTracks = std::move(annotationTracks);
 #elif _550
-    ToPtrArray(annotationTracks, animation->m_annotationTracks, animation->m_numAnnotationTracks);
+    toPtrArray(annotationTracks, animation->m_annotationTracks, animation->m_numAnnotationTracks);
 #endif
 
     animation->m_numberOfTransformTracks = nodes.getSize();
@@ -304,7 +304,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
         for (int j = 0; j < nodes.getSize(); j++)
         {
             if (nodes[j] != nullptr)
-                modelTransforms[j] = ToHavok(nodes[j]->EvaluateGlobalTransform(lTime));
+                modelTransforms[j] = toHavok(nodes[j]->EvaluateGlobalTransform(lTime));
         }
 
         hkaSkeletonUtils::transformModelPoseToLocalPose(nodes.getSize(), &skeleton->m_parentIndices[0], &modelTransforms[0], &localTransforms[(int)i * nodes.getSize()]);
@@ -313,7 +313,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
 #if _2010 || _2012
     animation->m_transforms = std::move(localTransforms);
 #elif _550
-    ToPtrArray(localTransforms, animation->m_transforms, animation->m_numTransforms);
+    toPtrArray(localTransforms, animation->m_transforms, animation->m_numTransforms);
 #endif
 
 #if _2010 || _2012
@@ -329,7 +329,7 @@ hkaAnimationBinding* CreateAnimationAndBinding(FbxScene* pScene, hkaSkeleton* sk
     return animationBinding;
 }
 
-std::string GetFileNameWithoutExtension(std::string filePath)
+static std::string getFileNameWithoutExtension(std::string filePath)
 {
     size_t index = filePath.find_last_of("\\/");
     if (index != std::string::npos)
@@ -342,12 +342,12 @@ std::string GetFileNameWithoutExtension(std::string filePath)
     return filePath;
 }
 
-std::string GetDirectoryName(const std::string& filePath)
+static std::string getDirectoryName(const std::string& filePath)
 {
     return filePath.substr(0, filePath.find_last_of("\\/") + 1);
 }
 
-void SavePackfile(const char* dstFilePath, hkRootLevelContainer* levelContainer, const hkStructureLayout& layout)
+static void savePackfile(const char* dstFilePath, hkRootLevelContainer* levelContainer, const hkStructureLayout& layout)
 {
     hkOstream stream(dstFilePath);
 
@@ -465,22 +465,22 @@ int main(int argc, const char** argv)
 
     if (dstFileName.empty())
     {
-        const std::string directoryName = GetDirectoryName(srcFileName);
-        const std::string fileName = GetFileNameWithoutExtension(srcFileName) + (sklFileName.empty() ? ".skl.hkx" : ".anm.hkx");
+        const std::string directoryName = getDirectoryName(srcFileName);
+        const std::string fileName = getFileNameWithoutExtension(srcFileName) + (sklFileName.empty() ? ".skl.hkx" : ".anm.hkx");
 
         dstFileName = directoryName.empty() ? fileName : directoryName + fileName;
     }
 
 #if _2010 || _2012
     hkMemoryRouter* memoryRouter = hkMemoryInitUtil::initDefault(hkMallocAllocator::m_defaultMallocAllocator, hkMemorySystem::FrameInfo(10 * 1024 * 1024));
-    hkBaseSystem::init(memoryRouter, HavokErrorReportFunction);
+    hkBaseSystem::init(memoryRouter, havokErrorReportFunction);
 #elif _550
     hkMemoryBlockServer* server = new hkSystemMemoryBlockServer(256 * 1024 * 1024);
     hkMemory* memoryManager = new hkFreeListMemory(server);
     hkThreadMemory* threadMemory = new hkThreadMemory(memoryManager, 16);
     threadMemory->setStackArea(new uint8_t[1024 * 1024], 1024 * 1024);
 
-    hkBaseSystem::init(memoryManager, threadMemory, HavokErrorReportFunction);
+    hkBaseSystem::init(memoryManager, threadMemory, havokErrorReportFunction);
 #endif
 
     FbxManager* lManager = FbxManager::Create();
@@ -506,17 +506,17 @@ int main(int argc, const char** argv)
 
     if (!sklFileName.empty())
     {
-        hkaSkeleton* skeleton = LoadSkeleton(sklFileName.c_str());
+        hkaSkeleton* skeleton = loadSkeleton(sklFileName.c_str());
 
         if (skeleton == nullptr)
             FATAL_ERROR("Failed to load skeleton file.");
 
-        std::string originalSkeletonName = GetFileNameWithoutExtension(sklFileName);
+        std::string originalSkeletonName = getFileNameWithoutExtension(sklFileName);
         size_t index = originalSkeletonName.find("_ForAnimExport");
         if (index != std::string::npos)
             originalSkeletonName.erase(index);
 
-        hkaAnimationBinding* animationBinding = CreateAnimationAndBinding(lScene, skeleton, originalSkeletonName.c_str(), compress, fps);
+        hkaAnimationBinding* animationBinding = createAnimationAndBinding(lScene, skeleton, originalSkeletonName.c_str(), compress, fps);
 
         if (animationBinding == nullptr)
             FATAL_ERROR("Failed to find animation data in FBX file.");
@@ -533,10 +533,10 @@ int main(int argc, const char** argv)
         {
             FbxNode* lNode = lRootNode->GetChild(i);
 
-            if (!CheckIsSkeleton(lNode))
+            if (!checkIsSkeleton(lNode))
                 continue;
 
-            hkaSkeleton* skeleton = CreateSkeleton(lNode, GetFileNameWithoutExtension(dstFileName).c_str());
+            hkaSkeleton* skeleton = createSkeleton(lNode, getFileNameWithoutExtension(dstFileName).c_str());
             if (skeleton == nullptr)
                 continue;
             
@@ -553,9 +553,9 @@ int main(int argc, const char** argv)
     animationContainer.m_bindings = std::move(bindings);
     animationContainer.m_skeletons = std::move(skeletons);
 #elif _550
-    ToPtrArray(animations, animationContainer.m_animations, animationContainer.m_numAnimations);
-    ToPtrArray(bindings, animationContainer.m_bindings, animationContainer.m_numBindings);
-    ToPtrArray(skeletons, animationContainer.m_skeletons, animationContainer.m_numSkeletons);
+    toPtrArray(animations, animationContainer.m_animations, animationContainer.m_numAnimations);
+    toPtrArray(bindings, animationContainer.m_bindings, animationContainer.m_numBindings);
+    toPtrArray(skeletons, animationContainer.m_skeletons, animationContainer.m_numSkeletons);
 #endif
 
     hkRootLevelContainer levelContainer;
@@ -566,14 +566,14 @@ int main(int argc, const char** argv)
 #if _2010 || _2012
     levelContainer.m_namedVariants = std::move(namedVariants);
 #elif _550
-    ToPtrArray(namedVariants, levelContainer.m_namedVariants, levelContainer.m_numNamedVariants);
+    toPtrArray(namedVariants, levelContainer.m_namedVariants, levelContainer.m_numNamedVariants);
 #endif
 
-    SavePackfile(dstFileName.c_str(), &levelContainer, layout);
+    savePackfile(dstFileName.c_str(), &levelContainer, layout);
 
     if (sklFileName.empty() && !layout.getRules().m_littleEndian)
     {
-        SavePackfile((GetDirectoryName(dstFileName) + GetFileNameWithoutExtension(dstFileName) + "_ForAnimExport.skl.hkx").c_str(), 
+        savePackfile((getDirectoryName(dstFileName) + getFileNameWithoutExtension(dstFileName) + "_ForAnimExport.skl.hkx").c_str(), 
             &levelContainer, hkStructureLayout::MsvcWin32LayoutRules);
     }
 
