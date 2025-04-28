@@ -389,6 +389,10 @@ int main(int argc, const char** argv)
         hkStructureLayout::MsvcWin32LayoutRules;
 #endif
 
+#if _2010 || _2012
+    bool saveTagfile = false;
+#endif
+
     bool compress = true;
     double fps = 60.0;
 
@@ -441,6 +445,14 @@ int main(int argc, const char** argv)
         }
 #endif
 
+#if _2010 || _2012
+        else if (strcmp(argv[i], "-t") == 0 ||
+            strcmp(argv[i], "--tagfile") == 0)
+        {
+            saveTagfile = true;
+        }
+#endif
+
         else if (srcFileName.empty())
             srcFileName = argv[i];
 
@@ -465,8 +477,11 @@ int main(int argc, const char** argv)
 #ifdef _2012
         printf("  -w or --wiiu:         Convert for Wii U.\n");
 #endif
+#if _2010 || _2012
+        printf("  -t or --tagfile:      Convert for any platform. Resulting file will be saved in tagfile format.\n");
+#endif
+        printf("\nIf no destination path is specified, it's going to be automatically assumed from input.\n");
         printf("If no skeleton path is specified, a skeleton HKX file is going to be created from input.\n");
-        printf("If no destination path is specified, it's going to be automatically assumed from input.\n");
         printf("If no output platform is specified, it's going to be exported for "
 #ifdef _550
             "Xbox 360"
@@ -580,7 +595,16 @@ int main(int argc, const char** argv)
     toPtrArray(namedVariants, levelContainer.m_namedVariants, levelContainer.m_numNamedVariants);
 #endif
 
-    savePackfile(dstFileName.c_str(), &levelContainer, layout);
+#if _2010 || _2012
+    if (saveTagfile)
+    {
+        hkSerializeUtil::saveTagfile(&levelContainer, hkRootLevelContainerClass, hkOstream(dstFileName.c_str()).getStreamWriter());
+    }
+    else
+#endif
+    {
+        savePackfile(dstFileName.c_str(), &levelContainer, layout);
+    }
 
     return 0;
 }
